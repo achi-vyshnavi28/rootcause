@@ -51,3 +51,7 @@ Each entry: the decision, the alternatives rejected, and why.
 
 ## 11. Anomaly threshold |robust z| >= 6
 - At 4, the STL detector flagged ordinary noise on a synthetic series; every real event found in Olist (Black Friday, New Year, the planted cancellations) scored above 11.
+
+## 12. PatchCore with pretrained CNN features on CPU
+- **Result (KolektorSDD, 5 random part-level splits, trained on good images only):** `vision/patchcore.py` (ResNet-18 layer2+3, greedy coreset of 4,000 patches) reached **ROC-AUC 0.872 ± 0.017**, AP 0.658, and caught 61.5% of defects at a 5% false-reject rate. The black-hat baseline on the same protocol scored 0.858 ± 0.063.
+- **Takeaway:** pretrained features fixed the 0.54 of the handcrafted-feature memory bank (entry 9). Averages are similar to the classical filter, but results are 4× more stable across splits. Published numbers (> 0.95) need larger backbones and resolution: see the GPU notebook.

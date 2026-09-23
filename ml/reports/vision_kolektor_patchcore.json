@@ -1,0 +1,26 @@
+{
+  "dataset": "KolektorSDD",
+  "method": "PatchCore (ResNet-18 layer2+3, greedy coreset 4000, kNN distance)",
+  "image_size": [
+    320,
+    128
+  ],
+  "trained_on": "good images only",
+  "image_level": {
+    "roc_auc": {
+      "mean": 0.872,
+      "std": 0.017,
+      "runs": 5
+    },
+    "average_precision": {
+      "mean": 0.658,
+      "std": 0.066,
+      "runs": 5
+    },
+    "recall_at_5pct_false_reject": {
+      "mean": 0.615,
+      "std": 0.113,
+      "runs": 5
+    }
+  }
+}
