@@ -30,9 +30,10 @@ LLM_MAX_SQL_RETRIES = int(os.getenv("LLM_MAX_SQL_RETRIES", "3"))
 
 # Demo mode (the hosted Hugging Face Space): business data comes from a bundled DuckDB file opened
 # read-only, and RootCause's own tables live in SQLite. No database server needed.
-DEMO_MODE = os.getenv("ROOTCAUSE_DEMO", "0") == "1"
 DEMO_DIR = Path(os.getenv("ROOTCAUSE_DEMO_DIR", Path(__file__).resolve().parents[1] / "data" / "demo"))
 DEMO_DB = DEMO_DIR / "rootcause_demo.duckdb"
+# On by request (ROOTCAUSE_DEMO=1), or automatically when there is no PostgreSQL password but the demo file exists.
+DEMO_MODE = os.getenv("ROOTCAUSE_DEMO", "") == "1" or (os.getenv("ROOTCAUSE_DEMO", "") != "0" and not os.getenv("PGPASSWORD") and DEMO_DB.exists())
 DEMO_DOCS = DEMO_DIR / "doc_chunks.npz"
 APP_SQLITE = Path(os.getenv("ROOTCAUSE_APP_DB", DEMO_DIR / "rootcause_app.sqlite3"))
 
