@@ -14,3 +14,12 @@ data/raw/
 # Editor / OS files
 .vscode/
 Thumbs.db
+# Local databases
+*.sqlite3
+
+# MLflow tracking store
+ml/mlflow.db
+ml/mlruns/
+
+# Local editor/agent config
+.claude/

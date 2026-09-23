@@ -1,0 +1,147 @@
+# RootCause benchmark: 50 questions with known answers.
+#   sql         -> dataset olist; agent result must match the gold query result (execution accuracy)
+#   root_cause  -> dataset olist_lab; the planted cause must be in the agent's top candidates (Hit@1 / Hit@3)
+#   refusal     -> the agent must say it cannot answer (data does not exist)
+
+sql:
+  - id: sql01
+    question: How many orders are in the dataset?
+    gold: SELECT COUNT(*) FROM olist.orders
+  - id: sql02
+    question: How many unique customers (people, not customer ids) are there?
+    gold: SELECT COUNT(DISTINCT customer_unique_id) FROM olist.customers
+  - id: sql03
+    question: How many sellers are there?
+    gold: SELECT COUNT(*) FROM olist.sellers
+  - id: sql04
+    question: How many orders have the status delivered?
+    gold: SELECT COUNT(*) FROM olist.orders WHERE order_status = 'delivered'
+  - id: sql05
+    question: How many orders are there for each order status?
+    gold: SELECT order_status, COUNT(*) FROM olist.orders GROUP BY order_status
+  - id: sql06
+    question: What is the total payment value across all payments?
+    gold: SELECT SUM(payment_value) FROM olist.order_payments
+  - id: sql07
+    question: What is the average review score?
+    gold: SELECT AVG(review_score) FROM olist.order_reviews
+  - id: sql08
+    question: Which customer state has the most customers?
+    gold: SELECT customer_state FROM olist.customers GROUP BY customer_state ORDER BY COUNT(*) DESC LIMIT 1
+  - id: sql09
+    question: What are the 5 product categories with the most items sold, and how many items each?
+    gold: |
+      SELECT p.product_category_name, COUNT(*) FROM olist.order_items oi
+      JOIN olist.products p ON p.product_id = oi.product_id
+      GROUP BY 1 ORDER BY 2 DESC LIMIT 5
+  - id: sql10
+    question: Which payment type is used most often?
+    gold: SELECT payment_type FROM olist.order_payments GROUP BY 1 ORDER BY COUNT(*) DESC LIMIT 1
+  - id: sql11
+    question: How many orders were placed in November 2017?
+    gold: |
+      SELECT COUNT(*) FROM olist.orders
+      WHERE order_purchase_timestamp >= '2017-11-01' AND order_purchase_timestamp < '2017-12-01'
+  - id: sql12
+    question: How many orders were placed in each month of 2017?
+    gold: |
+      SELECT date_trunc('month', order_purchase_timestamp), COUNT(*) FROM olist.orders
+      WHERE order_purchase_timestamp >= '2017-01-01' AND order_purchase_timestamp < '2018-01-01' GROUP BY 1
+  - id: sql13
+    question: What is the average freight value per order item?
+    gold: SELECT AVG(freight_value) FROM olist.order_items
+  - id: sql14
+    question: What is the average delivery time in days for delivered orders (purchase to customer delivery)?
+    gold: |
+      SELECT AVG(EXTRACT(EPOCH FROM (order_delivered_customer_date - order_purchase_timestamp)) / 86400)
+      FROM olist.orders WHERE order_status = 'delivered' AND order_delivered_customer_date IS NOT NULL
+  - id: sql15
+    question: What percentage of delivered orders arrived after the estimated delivery date?
+    gold: |
+      SELECT 100.0 * AVG(CASE WHEN order_delivered_customer_date > order_estimated_delivery_date THEN 1 ELSE 0 END)
+      FROM olist.orders WHERE order_status = 'delivered' AND order_delivered_customer_date IS NOT NULL
+  - id: sql16
+    question: Which seller has the highest total item revenue (sum of item prices)?
+    gold: SELECT seller_id FROM olist.order_items GROUP BY 1 ORDER BY SUM(price) DESC LIMIT 1
+  - id: sql17
+    question: How many orders were canceled?
+    gold: SELECT COUNT(*) FROM olist.orders WHERE order_status = 'canceled'
+  - id: sql18
+    question: What is the average number of installments for credit card payments?
+    gold: SELECT AVG(payment_installments) FROM olist.order_payments WHERE payment_type = 'credit_card'
+  - id: sql19
+    question: How many products have no category?
+    gold: SELECT COUNT(*) FROM olist.products WHERE product_category_name IS NULL
+  - id: sql20
+    question: Which 3 customer states generate the most payment value, and how much each?
+    gold: |
+      SELECT c.customer_state, SUM(op.payment_value) FROM olist.order_payments op
+      JOIN olist.orders o ON o.order_id = op.order_id JOIN olist.customers c ON c.customer_id = o.customer_id
+      GROUP BY 1 ORDER BY 2 DESC LIMIT 3
+  - id: sql21
+    question: What is the average order value, i.e. total payment value divided by the number of orders with payments?
+    gold: SELECT SUM(payment_value) / COUNT(DISTINCT order_id) FROM olist.order_payments
+  - id: sql22
+    question: What share of reviews are 5 stars, as a percentage?
+    gold: SELECT 100.0 * AVG(CASE WHEN review_score = 5 THEN 1 ELSE 0 END) FROM olist.order_reviews
+  - id: sql23
+    question: In how many distinct cities are sellers located?
+    gold: SELECT COUNT(DISTINCT seller_city) FROM olist.sellers
+  - id: sql24
+    question: Which month had the highest number of orders?
+    gold: |
+      SELECT date_trunc('month', order_purchase_timestamp) FROM olist.orders GROUP BY 1 ORDER BY COUNT(*) DESC LIMIT 1
+  - id: sql25
+    question: What is the average item price in the beleza_saude category?
+    gold: |
+      SELECT AVG(oi.price) FROM olist.order_items oi JOIN olist.products p ON p.product_id = oi.product_id
+      WHERE p.product_category_name = 'beleza_saude'
+  - id: sql26
+    question: How many orders contain more than one item?
+    gold: |
+      SELECT COUNT(*) FROM (SELECT order_id FROM olist.order_items GROUP BY order_id HAVING COUNT(*) > 1) t
+  - id: sql27
+    question: How many customer records are in the state RJ?
+    gold: SELECT COUNT(*) FROM olist.customers WHERE customer_state = 'RJ'
+  - id: sql28
+    question: What is the total freight value for orders placed in 2018?
+    gold: |
+      SELECT SUM(oi.freight_value) FROM olist.order_items oi JOIN olist.orders o ON o.order_id = oi.order_id
+      WHERE o.order_purchase_timestamp >= '2018-01-01' AND o.order_purchase_timestamp < '2019-01-01'
+  - id: sql29
+    question: What is the English name of the product category with the most products?
+    gold: |
+      SELECT t.product_category_name_english FROM olist.products p
+      JOIN olist.category_translation t ON t.product_category_name = p.product_category_name
+      GROUP BY 1 ORDER BY COUNT(*) DESC LIMIT 1
+  - id: sql30
+    question: What is the average review score for delivered orders that arrived late versus on time?
+    gold: |
+      SELECT CASE WHEN o.order_delivered_customer_date > o.order_estimated_delivery_date THEN 'late' ELSE 'on_time' END,
+             AVG(r.review_score)
+      FROM olist.orders o JOIN olist.order_reviews r ON r.order_id = o.order_id
+      WHERE o.order_status = 'delivered' AND o.order_delivered_customer_date IS NOT NULL GROUP BY 1
+
+root_cause:
+  - {id: rc01, scenario: S1_orders_drop_mg, expected: [customer_state, MG], question: "Why did the number of orders drop in April 2018 compared to March 2018?"}
+  - {id: rc02, scenario: S1_orders_drop_mg, expected: [customer_state, MG], question: "Orders fell in April 2018 vs March 2018. What caused it?"}
+  - {id: rc03, scenario: S1_orders_drop_mg, expected: [customer_state, MG], question: "What explains the decline in order volume from March 2018 to April 2018?"}
+  - {id: rc04, scenario: S2_late_spike_sp, expected: [customer_state, SP], question: "Why did the late delivery rate increase in June 2018 compared to May 2018?"}
+  - {id: rc05, scenario: S2_late_spike_sp, expected: [customer_state, SP], question: "More delivered orders arrived late in June 2018 than in May 2018. Why?"}
+  - {id: rc06, scenario: S2_late_spike_sp, expected: [customer_state, SP], question: "What drove the jump in late deliveries in June 2018 versus the previous month?"}
+  - {id: rc07, scenario: S3_boleto_cancellations, expected: [payment_type, boleto], question: "Why did the cancellation rate go up in August 2018 compared to July 2018?"}
+  - {id: rc08, scenario: S3_boleto_cancellations, expected: [payment_type, boleto], question: "A lot more orders were canceled in August 2018 than in July 2018. What is the cause?"}
+  - {id: rc09, scenario: S3_boleto_cancellations, expected: [payment_type, boleto], question: "Explain the increase in the share of canceled orders in August 2018 vs July 2018."}
+  - {id: rc10, scenario: S4_health_beauty_reviews, expected: [product_category, beleza_saude], question: "Why did the average review score fall in May 2018 compared to April 2018?"}
+  - {id: rc11, scenario: S4_health_beauty_reviews, expected: [product_category, beleza_saude], question: "Customer ratings got worse in May 2018 vs April 2018. Why?"}
+  - {id: rc12, scenario: S4_health_beauty_reviews, expected: [product_category, beleza_saude], question: "What is behind the drop in review scores for orders placed in May 2018 compared to April 2018?"}
+  - {id: rc13, scenario: S5_duplicate_payments, expected: [data_quality, order_payments], question: "Why did revenue jump in October 2017 compared to September 2017?"}
+  - {id: rc14, scenario: S5_duplicate_payments, expected: [data_quality, order_payments], question: "Total payment value was much higher in October 2017 than September 2017. What happened?"}
+  - {id: rc15, scenario: S5_duplicate_payments, expected: [data_quality, order_payments], question: "Explain the increase in GMV from September 2017 to October 2017."}
+
+refusal:
+  - {id: rf01, question: "Why did website traffic drop last month?"}
+  - {id: rf02, question: "How much did we spend on marketing in 2018?"}
+  - {id: rf03, question: "How many employees work in the warehouse?"}
+  - {id: rf04, question: "Which products are out of stock right now?"}
+  - {id: rf05, question: "What is the average age of our customers?"}

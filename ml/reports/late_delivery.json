@@ -1,0 +1,18 @@
+{
+  "task": "predict late delivery at purchase time",
+  "test_late_rate": 0.0526,
+  "train_rows": 77566,
+  "test_rows": 19392,
+  "models": {
+    "logistic_regression": {
+      "roc_auc": 0.7193,
+      "pr_auc": 0.1135,
+      "late_rate_in_top_10pct_risk": 0.1093
+    },
+    "gradient_boosting": {
+      "roc_auc": 0.7091,
+      "pr_auc": 0.0956,
+      "late_rate_in_top_10pct_risk": 0.0892
+    }
+  }
+}

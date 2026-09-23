@@ -1,0 +1,72 @@
+{
+  "horizon_days": 28,
+  "folds": 4,
+  "mean_mape_pct": {
+    "holt_winters": 23.57,
+    "gradient_boosting": 26.49,
+    "seasonal_naive": 29.58
+  },
+  "best_model": "holt_winters",
+  "per_fold": [
+    {
+      "fold_end": "2018-05-22",
+      "model": "seasonal_naive",
+      "mape": 17.19
+    },
+    {
+      "fold_end": "2018-05-22",
+      "model": "holt_winters",
+      "mape": 16.31
+    },
+    {
+      "fold_end": "2018-05-22",
+      "model": "gradient_boosting",
+      "mape": 15.11
+    },
+    {
+      "fold_end": "2018-06-19",
+      "model": "seasonal_naive",
+      "mape": 40.92
+    },
+    {
+      "fold_end": "2018-06-19",
+      "model": "holt_winters",
+      "mape": 25.69
+    },
+    {
+      "fold_end": "2018-06-19",
+      "model": "gradient_boosting",
+      "mape": 31.71
+    },
+    {
+      "fold_end": "2018-07-17",
+      "model": "seasonal_naive",
+      "mape": 24.81
+    },
+    {
+      "fold_end": "2018-07-17",
+      "model": "holt_winters",
+      "mape": 26.37
+    },
+    {
+      "fold_end": "2018-07-17",
+      "model": "gradient_boosting",
+      "mape": 32.79
+    },
+    {
+      "fold_end": "2018-08-14",
+      "model": "seasonal_naive",
+      "mape": 35.4
+    },
+    {
+      "fold_end": "2018-08-14",
+      "model": "holt_winters",
+      "mape": 25.92
+    },
+    {
+      "fold_end": "2018-08-14",
+      "model": "gradient_boosting",
+      "mape": 26.34
+    }
+  ]
+}

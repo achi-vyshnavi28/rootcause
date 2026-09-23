@@ -109,7 +109,7 @@
                                             [Postgres/BigQuery] [pgvector] [pandas/scipy/ [OpenCV/
                                              read-only analytics]          sklearn/torch]  YOLO]
                                                            │
-                                         [LLMs: Claude API (+ OpenAI baseline)]
+                                         [LLMs via LiteLLM: Gemini (free) · Groq · Ollama]
                                                            │
                                      [Langfuse traces · cost · latency · Sentry]
 
@@ -122,7 +122,7 @@
 |---|---|
 | Language | Python 3.11+, SQL, C, JavaScript/Node, Bash |
 | API | FastAPI, Pydantic; Django + DRF (integrations service) |
-| Agents / LLM | LangGraph, LangChain, LlamaIndex, Claude API (strong model for reasoning, cheap model for simple steps), OpenAI (baseline) |
+| Agents / LLM | LangGraph, LangChain, LlamaIndex, LiteLLM; default models: Gemini API (free tier), Groq (free tier, backup), Ollama (local). Claude / OpenAI supported via config when credits are available |
 | Databases | PostgreSQL, BigQuery, MongoDB, pgvector (Qdrant alt) |
 | SQL safety | sqlglot, read-only role |
 | Stats / ML | pandas, NumPy, SciPy, statsmodels, scikit-learn, PyTorch, TensorFlow/Keras, Hugging Face, LightGBM, Prophet, MLflow |
@@ -253,8 +253,9 @@ rootcause/
 
 ## 9. Prerequisites (developer does these)
 - Install: Python 3.11+, Docker Desktop, Git, Node.js
-- Accounts: Anthropic API (OpenAI optional), GitHub, Kaggle, deploy host (Render/Fly/AWS), Neon or Supabase
-- Set API keys yourself as environment variables (never commit them; use `.env` in `.gitignore`)
+- Accounts: Google AI Studio (Gemini API key, free), Groq (optional, free), GitHub, Kaggle, deploy host (Render/Fly/AWS), Neon or Supabase
+- Set API keys yourself in `.env` (never commit them; `.env` is in `.gitignore`)
+- Local database: PostgreSQL 16 installed natively on Windows (Docker skipped for now — CPU virtualization is disabled in BIOS; Dockerfile can be added later and built in GitHub Actions)
 - Download the Olist dataset from Kaggle
 
 ## 10. Proof of work (exact deliverables)
@@ -278,7 +279,7 @@ rootcause/
 5. 80–90s — One hard lesson learned + how it applies to the viewer's business.
 
 ### Resume bullets (fill with real numbers)
-- Built **RootCause**, an AI analyst agent (LangGraph, Claude API, FastAPI, PostgreSQL) that diagnoses why business metrics change — **X% SQL execution accuracy**, **Y% root-cause Hit@1** on a 50-question benchmark.
+- Built **RootCause**, an AI analyst agent (LangGraph, Gemini via LiteLLM, FastAPI, PostgreSQL) that diagnoses why business metrics change — **X% SQL execution accuracy**, **Y% root-cause Hit@1** on a 50-question benchmark.
 - Designed an eval harness with planted-anomaly ground truth; cut hallucinated numbers from **A% to B%** via query-grounded reporting and verification.
 - Built SQL guardrails (sqlglot, read-only roles, cost limits) and CI regression evals; deployed with Docker on AWS at **₹N per investigation, M s average latency**.
 
@@ -286,7 +287,7 @@ rootcause/
 **Programming:** Python · SQL · C · JavaScript/Node · Bash · data structures
 **Backend:** FastAPI · Django · DRF · REST · webhooks · OAuth · Celery · Redis · integrations
 **Data:** PostgreSQL · BigQuery · MongoDB · pgvector · star schema · advanced SQL · ETL · large data · Unix tools
-**AI/GenAI:** Claude/OpenAI APIs · prompt engineering · structured outputs · LangGraph · LangChain · LlamaIndex · agents · RAG · embeddings · reranking · guardrails · evals · model routing
+**AI/GenAI:** LLM APIs (Gemini, Groq/Llama, Ollama; provider-agnostic) · prompt engineering · structured outputs · LangGraph · LangChain · LlamaIndex · agents · RAG · embeddings · reranking · guardrails · evals · model routing
 **ML:** scikit-learn · PyTorch · TensorFlow · Hugging Face · NLP · ranking · forecasting · anomaly detection · survival analysis · MLflow
 **Vision/audio/IoT:** OpenCV · YOLO/RT-DETR · OCR · tracking · audio CNN · ONNX/TFLite · MQTT · Kalman · homography
 **Math/OR:** linear algebra · statistics · A/B testing · decomposition · OR-Tools · simulation

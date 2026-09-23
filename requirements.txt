@@ -1,0 +1,42 @@
+# Data + database
+pandas==2.2.3
+SQLAlchemy==2.0.36
+psycopg[binary]==3.2.3
+python-dotenv==1.0.1
+PyYAML==6.0.3
+
+# Agent + LLM
+litellm==1.102.1
+langgraph==1.2.12
+pydantic==2.13.5
+sqlglot==30.19.0
+
+# RAG
+rank-bm25==0.2.2
+numpy==2.5.3
+
+# Integrations service
+Django==6.1.1
+djangorestframework==3.18.1
+celery==5.6.3
+redis==8.1.0
+
+# Analytics + ML (scikit-learn pinned to 1.8: 1.9's compiled files are blocked by Windows Application Control on the dev laptop)
+scipy==1.18.1
+statsmodels==0.15.0
+scikit-learn==1.8.0
+openpyxl==3.1.5
+mlflow-skinny==3.16.1
+alembic==1.20.0
+
+# API + UI
+fastapi==0.141.1
+uvicorn[standard]==0.53.0
+httpx==0.28.1
+streamlit==1.64.0
+plotly==7.1.0
+
+# Tests
+pytest==9.1.1
+duckdb==1.5.5
+pytest-django==4.14.0
