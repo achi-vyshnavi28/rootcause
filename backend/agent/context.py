@@ -5,17 +5,25 @@ from functools import lru_cache
 from sqlalchemy import text
 
 from backend.agent.semantic import dimensions, glossary_text
+from backend import config
 from backend.config import readonly_engine
+
+
+COLUMNS_SQL = ("SELECT table_name, column_name, data_type FROM information_schema.columns "
+               "WHERE table_schema = {p} ORDER BY table_name, ordinal_position")
 
 
 @lru_cache
 def schema_context(dataset: str) -> str:
+    if config.DEMO_MODE:
+        with config.demo_connection() as conn:
+            columns = conn.execute(COLUMNS_SQL.format(p="?"), [dataset]).fetchall()
+            date_range = conn.execute(
+                f"SELECT MIN(order_purchase_timestamp), MAX(order_purchase_timestamp) FROM {dataset}.orders").fetchone()
+        return format_context(dataset, columns, date_range)
     with readonly_engine().connect() as conn:
         columns = conn.execute(
-            text(
-                "SELECT table_name, column_name, data_type FROM information_schema.columns "
-                "WHERE table_schema = :s ORDER BY table_name, ordinal_position"
-            ),
+            text(COLUMNS_SQL.format(p=":s")),
             {"s": dataset},
         ).all()
         date_range = conn.execute(

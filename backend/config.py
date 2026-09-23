@@ -2,6 +2,7 @@
 
 import os
 from functools import lru_cache
+from pathlib import Path
 
 from dotenv import load_dotenv
 from sqlalchemy import URL, create_engine
@@ -27,6 +28,15 @@ LLM_REASONING_EFFORT = os.getenv("LLM_REASONING_EFFORT", "low") or None
 LLM_MAX_SQL_RETRIES = int(os.getenv("LLM_MAX_SQL_RETRIES", "3"))
 
 
+# Demo mode (the hosted Hugging Face Space): business data comes from a bundled DuckDB file opened
+# read-only, and RootCause's own tables live in SQLite. No database server needed.
+DEMO_MODE = os.getenv("ROOTCAUSE_DEMO", "0") == "1"
+DEMO_DIR = Path(os.getenv("ROOTCAUSE_DEMO_DIR", Path(__file__).resolve().parents[1] / "data" / "demo"))
+DEMO_DB = DEMO_DIR / "rootcause_demo.duckdb"
+DEMO_DOCS = DEMO_DIR / "doc_chunks.npz"
+APP_SQLITE = Path(os.getenv("ROOTCAUSE_APP_DB", DEMO_DIR / "rootcause_app.sqlite3"))
+
+
 def _required(name: str) -> str:
     value = os.getenv(name)
     if not value:
@@ -48,8 +58,31 @@ def _build_url(user: str, password: str) -> URL:
 
 @lru_cache
 def admin_engine() -> Engine:
-    """Full-access connection. Only for setup scripts and RootCause's own app tables."""
+    """Full-access connection. Only for setup scripts and RootCause's own app tables.
+
+    In demo mode this is a local SQLite file; the app schema is attached under the same name
+    so table references like rootcause_app.runs work unchanged.
+    """
+    if DEMO_MODE:
+        from sqlalchemy import event
+
+        APP_SQLITE.parent.mkdir(parents=True, exist_ok=True)
+        engine = create_engine("sqlite://")
+        path = APP_SQLITE.as_posix()
+
+        @event.listens_for(engine, "connect")
+        def _attach(dbapi_conn, _record):
+            dbapi_conn.execute(f"ATTACH DATABASE '{path}' AS {APP_SCHEMA}")
+
+        return engine
     return create_engine(_build_url(_required("PGUSER"), _required("PGPASSWORD")), pool_pre_ping=True)
+
+
+def demo_connection():
+    """Read-only DuckDB connection to the bundled demo data (writes are impossible)."""
+    import duckdb
+
+    return duckdb.connect(str(DEMO_DB), read_only=True)
 
 
 @lru_cache

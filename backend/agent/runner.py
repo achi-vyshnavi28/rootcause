@@ -12,9 +12,10 @@ def default_deps() -> AgentDeps:
     from backend.db.executor import run_readonly_sql
     from backend.llm import LiteLLMClient
     from backend.rag.embeddings import GeminiEmbedder
-    from backend.rag.store import PostgresDocStore
+    from backend import config
+    from backend.rag.store import FileDocStore, PostgresDocStore
 
-    store = PostgresDocStore(GeminiEmbedder())
+    store = FileDocStore(GeminiEmbedder(), config.DEMO_DOCS) if config.DEMO_MODE else PostgresDocStore(GeminiEmbedder())
 
     def retrieve(query: str, dataset: str, start: str, end: str) -> list[dict]:
         return store.search(query, dataset, start, end, k=3)

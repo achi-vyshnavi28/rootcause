@@ -92,3 +92,28 @@ class PostgresDocStore(InMemoryDocStore):
             {**r, "doc_date": r["doc_date"].isoformat() if r["doc_date"] else None, "embedding": np.asarray(r["embedding"], dtype=np.float32)}
             for r in rows if _within(r["doc_date"], start, end, margin_days)
         ]
+
+
+class FileDocStore(InMemoryDocStore):
+    """Demo mode: chunks and their embeddings exported to one .npz file (see deploy/build_demo.py)."""
+
+    def __init__(self, embedder: Embedder, path):
+        super().__init__(embedder)
+        import json
+
+        data = np.load(path, allow_pickle=False)
+        meta = json.loads(str(data["meta"]))
+        self.rows = [{**m, "embedding": v} for m, v in zip(meta, data["embeddings"])]
+
+
+def export_chunks(path) -> int:
+    """Write every indexed chunk (all datasets) from PostgreSQL to an .npz file for demo mode."""
+    import json
+
+    with admin_engine().connect() as conn:
+        records = conn.execute(text(f"SELECT dataset, doc_id, chunk_no, title, doc_type, doc_date, text, embedding "
+                                    f"FROM {APP_SCHEMA}.doc_chunks ORDER BY dataset, doc_id, chunk_no")).mappings().all()
+    meta = [{k: (r[k].isoformat() if k == "doc_date" and r[k] else r[k]) for k in
+             ("dataset", "doc_id", "chunk_no", "title", "doc_type", "doc_date", "text")} for r in records]
+    np.savez_compressed(path, meta=json.dumps(meta), embeddings=np.asarray([r["embedding"] for r in records], dtype=np.float32))
+    return len(records)

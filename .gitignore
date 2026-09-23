@@ -27,3 +27,7 @@ ml/mlruns/
 # Compiled C libraries
 vision/*.so
 vision/*.dll
+
+# Demo bundle (built by deploy/build_demo.py, uploaded to Hugging Face, not to GitHub)
+data/demo/
+dist/
