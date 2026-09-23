@@ -28,3 +28,23 @@ def test_degrading_machine_is_warned_before_failure_and_healthy_ones_are_not():
     assert set(alerted) == {"wearing"}
     assert failed_at["wearing"] is not None
     assert alerted["wearing"]["at_step"] < failed_at["wearing"]  # warned in advance
+
+
+def test_nasa_score_punishes_late_predictions_more():
+    import numpy as np
+
+    from iot.rul import nasa_score
+
+    true = np.array([50.0])
+    assert nasa_score(true, np.array([60.0])) > nasa_score(true, np.array([40.0]))  # 10 too optimistic > 10 too cautious
+    assert nasa_score(true, true) == 0
+
+
+def test_rul_target_is_capped():
+    import pandas as pd
+
+    from iot.rul import RUL_CAP, add_train_target
+
+    df = pd.DataFrame({"unit": [1] * 200, "cycle": range(1, 201)})
+    y = add_train_target(df)
+    assert y.max() == RUL_CAP and y.iloc[-1] == 0

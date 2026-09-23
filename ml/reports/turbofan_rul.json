@@ -1,0 +1,38 @@
+{
+  "dataset": "CMAPSS FD001",
+  "train_engines": 100,
+  "test_engines": 100,
+  "sensors_used": [
+    "s2",
+    "s3",
+    "s4",
+    "s6",
+    "s7",
+    "s8",
+    "s9",
+    "s11",
+    "s12",
+    "s13",
+    "s14",
+    "s15",
+    "s17",
+    "s20",
+    "s21"
+  ],
+  "rul_cap": 125,
+  "window": 30,
+  "models": {
+    "mean_baseline": {
+      "rmse": 41.94,
+      "nasa_score": 33354.5
+    },
+    "ridge": {
+      "rmse": 18.16,
+      "nasa_score": 713.7
+    },
+    "gradient_boosting": {
+      "rmse": 15.46,
+      "nasa_score": 380.1
+    }
+  }
+}
