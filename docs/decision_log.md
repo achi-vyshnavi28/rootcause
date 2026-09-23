@@ -40,3 +40,14 @@ Each entry: the decision, the alternatives rejected, and why.
 ## 8. Native PostgreSQL instead of Docker (for now)
 - **Decision:** Local PostgreSQL 16 on Windows.
 - **Why:** CPU virtualization is disabled on the development laptop. Docker can be added later and built in CI.
+
+## 9. Vision: an oriented crack filter beat a from-scratch PatchCore (negative result kept)
+- **Result (KolektorSDD, test = every 3rd product folder):** the first classical filter reached ROC-AUC 0.56. After looking at the images (grainy texture, thin horizontal cracks, bright edge strips), a vertical-kernel black-hat plus horizontal averaging plus edge masking reached **0.89 AUC / 82% localisation**. Its 3 parameters were tuned on training products only.
+- **Negative result:** a PatchCore-style memory bank with handcrafted HOG features stayed at 0.54. Handcrafted descriptors don't separate cracks from stochastic grain; the paper's pretrained CNN features are what make it work.
+- **Next:** `notebooks/ksdd_patchcore_yolo_colab.ipynb` runs anomalib PatchCore (WideResNet-50) and YOLO segmentation on a free GPU with the same split.
+
+## 10. scikit-learn pinned to 1.8
+- scikit-learn 1.9's compiled `_loss` module was blocked by Windows Application Control on the development laptop. 1.8 loads. The security policy was left untouched.
+
+## 11. Anomaly threshold |robust z| >= 6
+- At 4, the STL detector flagged ordinary noise on a synthetic series; every real event found in Olist (Black Friday, New Year, the planted cancellations) scored above 11.

@@ -34,6 +34,10 @@ ortools==9.15.6755
 simpy==4.1.2
 paho-mqtt==2.1.0
 
+# Vision
+opencv-python-headless==5.0.0.93
+scikit-image==0.26.0
+
 # API + UI
 fastapi==0.141.1
 uvicorn[standard]==0.53.0

@@ -1,0 +1,28 @@
+{
+  "dataset": "KolektorSDD",
+  "images": 399,
+  "defective": 52,
+  "parts": 50,
+  "pixel_check": {
+    "mean_map_on_defect_pixels": 0.2169,
+    "mean_map_elsewhere": 0.0639
+  },
+  "image_level": {
+    "roc_auc": {
+      "mean": 0.858,
+      "std": 0.063,
+      "runs": 5
+    },
+    "average_precision": {
+      "mean": 0.643,
+      "std": 0.122,
+      "runs": 5
+    },
+    "recall_at_5pct_false_reject": {
+      "mean": 0.593,
+      "std": 0.155,
+      "runs": 5
+    }
+  },
+  "method": "classical: illumination flattening + black-hat morphology + blob features + gradient boosting"
+}

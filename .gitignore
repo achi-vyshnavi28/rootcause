@@ -23,3 +23,7 @@ ml/mlruns/
 
 # Local editor/agent config
 .claude/
+
+# Compiled C libraries
+vision/*.so
+vision/*.dll

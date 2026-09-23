@@ -1,0 +1,19 @@
+{
+  "dataset": "KolektorSDD",
+  "train_good_images": 228,
+  "test_images": 136,
+  "test_defective": 17,
+  "split": "by product folder (every 3rd folder is test)",
+  "results": {
+    "classical": {
+      "image_roc_auc": 0.8913,
+      "image_avg_precision": 0.6204,
+      "localisation_pointing_acc": 0.8235
+    },
+    "patch_bank": {
+      "image_roc_auc": 0.5353,
+      "image_avg_precision": 0.1479,
+      "localisation_pointing_acc": 0.2941
+    }
+  }
+}
