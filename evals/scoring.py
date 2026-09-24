@@ -1,6 +1,7 @@
 """Scoring rules for the benchmark. Pure functions, unit-tested."""
 
 import math
+import re
 from datetime import date, datetime
 
 import pandas as pd
@@ -16,12 +17,24 @@ def _cell(value) -> object:
     try:
         return float(value)
     except (TypeError, ValueError):
-        return str(value).strip()
+        text = str(value).strip()
+        if re.fullmatch(r"\d{4}-\d{2}", text):  # month written as 2017-11 == 2017-11-01
+            return f"{text}-01"
+        if re.fullmatch(r"\d{4}-\d{2}-\d{2}[ T].*", text):  # timestamp string -> date
+            return text[:10]
+        return text
+
+
+def _normalize_label(text: str) -> str:
+    """'On Time', 'on_time' and 'on-time' are the same label."""
+    return re.sub(r"[^a-z0-9]", "", text.lower())
 
 
 def _cells_match(gold, got) -> bool:
     if isinstance(gold, float) and isinstance(got, float):
         return math.isclose(gold, got, rel_tol=1e-3, abs_tol=1e-3)
+    if isinstance(gold, str) and isinstance(got, str):
+        return _normalize_label(gold) == _normalize_label(got)
     return gold == got
 
 

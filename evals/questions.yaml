@@ -34,6 +34,12 @@ sql:
       SELECT p.product_category_name, COUNT(*) FROM olist.order_items oi
       JOIN olist.products p ON p.product_id = oi.product_id
       GROUP BY 1 ORDER BY 2 DESC LIMIT 5
+    alt_gold:  # the question doesn't say which language; English names are equally correct
+      - |
+        SELECT t.product_category_name_english, COUNT(*) FROM olist.order_items oi
+        JOIN olist.products p ON p.product_id = oi.product_id
+        JOIN olist.category_translation t ON t.product_category_name = p.product_category_name
+        GROUP BY 1 ORDER BY 2 DESC LIMIT 5
   - id: sql10
     question: Which payment type is used most often?
     gold: SELECT payment_type FROM olist.order_payments GROUP BY 1 ORDER BY COUNT(*) DESC LIMIT 1

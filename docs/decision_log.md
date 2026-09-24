@@ -55,3 +55,12 @@ Each entry: the decision, the alternatives rejected, and why.
 ## 12. PatchCore with pretrained CNN features on CPU
 - **Result (KolektorSDD, 5 random part-level splits, trained on good images only):** `vision/patchcore.py` (ResNet-18 layer2+3, greedy coreset of 4,000 patches) reached **ROC-AUC 0.872 ± 0.017**, AP 0.658, and caught 61.5% of defects at a 5% false-reject rate. The black-hat baseline on the same protocol scored 0.858 ± 0.063.
 - **Takeaway:** pretrained features fixed the 0.54 of the handcrafted-feature memory bank (entry 9). Averages are similar to the classical filter, but results are 4× more stable across splits. Published numbers (> 0.95) need larger backbones and resolution: see the GPU notebook.
+
+## 13. Benchmark scoring fixes, applied to all questions and disclosed
+- **First full run (2026-09-24):** SQL 80%, root-cause Hit@1 86.7%, Hit@3 93.3%, refusals 100%, unsupported numbers 0%.
+- **Failure review, question by question:**
+  - sql12, sql24: correct months written `2017-11`; the answer key had `2017-11-01`. sql30: correct values labelled `Late`/`On Time` vs `late`/`on_time`. The scorer now treats `YYYY-MM` as the first of that month and compares text labels ignoring case and separators (`evals/scoring.py`, tests added).
+  - sql09: correct counts with English category names; the question does not specify a language, so the English-name query was added as an accepted answer (`alt_gold`).
+  - sql14, sql15, rc07: never reached the agent's reasoning (network `getaddrinfo` failure overnight; Gemini 503 "high demand"). Re-run with `--ids`.
+- **Rule:** scorer changes apply to every question and are re-applied to the saved answers with `evals/rescore.py` (no LLM calls, so no chance to "retry until right"). Nothing was changed in the agent between the run and the rescore.
+- **Latency:** the reported average was dominated by one 11.7-hour hang during the network outage; the report now also gives the median.

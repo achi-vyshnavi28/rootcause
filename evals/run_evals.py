@@ -46,6 +46,7 @@ def main() -> None:
     parser.add_argument("--only", choices=["sql", "root_cause", "refusal"], default=None)
     parser.add_argument("--baseline", action="store_true")
     parser.add_argument("--pause", type=float, default=2.0)
+    parser.add_argument("--ids", nargs="*", help="only these question ids; results are merged into the existing report")
     args = parser.parse_args()
 
     suite = yaml.safe_load((HERE / "questions.yaml").read_text(encoding="utf-8"))
@@ -55,6 +56,8 @@ def main() -> None:
         if args.only and category != args.only:
             continue
         for item in suite[category][: args.limit]:
+            if args.ids and item["id"] not in args.ids:
+                continue
             deps = default_deps()
             if args.baseline:
                 deps.max_retries = 1
@@ -67,7 +70,8 @@ def main() -> None:
                    "unsupported_numbers": len((result["report"] or {}).get("unsupported_numbers", []))}
             if category == "sql":
                 got = _agent_frame(result) if result["status"] == "ok" else None
-                row["correct"] = bool(got is not None and results_match(_gold(item["gold"]), got))
+                golds = [item["gold"], *item.get("alt_gold", [])]
+                row["correct"] = bool(got is not None and any(results_match(_gold(g), got) for g in golds))
             elif category == "root_cause":
                 candidates = ((result["report"] or {}).get("evidence") or {}).get("top_candidates", [])
                 rank = hit_rank(candidates, tuple(item["expected"]))
@@ -80,6 +84,10 @@ def main() -> None:
             print(f"{row['id']:<6} {row['status']:<22} " + ", ".join(f"{k}={row[k]}" for k in ("correct", "rank") if k in row))
             time.sleep(args.pause)
 
+    if args.ids:  # merge re-run questions into the previous full report
+        previous = json.loads((REPORTS / ("baseline.json" if args.baseline else "latest.json")).read_text(encoding="utf-8"))
+        rerun = {r["id"] for r in rows}
+        rows = [r for r in previous["results"] if r["id"] not in rerun] + rows
     df = pd.DataFrame(rows)
 
     def rate(cat: str, col: str) -> float | None:
@@ -92,8 +100,9 @@ def main() -> None:
         "root_cause_hit_at_3_pct": rate("root_cause", "hit_at_3"),
         "correct_refusal_pct": rate("refusal", "correct"),
         "answers_with_unsupported_numbers_pct": round(float((df["unsupported_numbers"] > 0).mean()) * 100, 1) if len(df) else None,
-        "avg_latency_s": round(total_time / len(df), 2) if len(df) else None,
-        "avg_cost_usd": round(total_cost / len(df), 6) if len(df) else None,
+        "avg_latency_s": round(float(df["duration_s"].mean()), 2) if len(df) else None,
+        "median_latency_s": round(float(df["duration_s"].median()), 2) if len(df) else None,
+        "avg_cost_usd": round(float(df["cost_usd"].mean()), 6) if len(df) else None,
         "questions": len(df),
         "mode": "baseline (no self-correction)" if args.baseline else "agent",
     }

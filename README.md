@@ -36,15 +36,29 @@ Streamlit UI / FastAPI ──► LangGraph agent ──► LLM (via LiteLLM)
 | Root cause on 5 planted anomalies (`olist_lab`) | 15 | Hit@1 / Hit@3 |
 | Unanswerable questions | 5 | Correct refusal |
 
-Results: _run `python -m evals.run_evals` and paste `evals/reports/latest.json` summary here._
+Results (Gemini free tier, `gemini-3.6-flash`, 2026-09-24; full report in `evals/reports/latest.json`):
 
-| Metric | Agent | Baseline (no self-correction) |
-|---|---|---|
-| SQL execution accuracy | – | – |
-| Root-cause Hit@1 / Hit@3 | – | – |
-| Correct refusals | – | – |
-| Answers with unsupported numbers | – | – |
-| Avg latency / cost | – | – |
+| Metric | Result |
+|---|---|
+| SQL execution accuracy | **100%** (30/30) |
+| Root-cause Hit@1 / Hit@3 | **93.3% / 100%** (the one miss ranked the true cause 2nd) |
+| Correct refusals | **100%** (5/5) |
+| Answers with unsupported (invented) numbers | **0%** |
+| Median / average time per question | 22 s / 50 s |
+| LLM cost per question | ~$0.004 at list price ($0 on the free tier) |
+
+How these numbers were reached, including the first run (80% SQL), the scoring fixes and the outage re-runs, is recorded in [docs/decision_log.md](docs/decision_log.md) (entry 13).
+
+## Other results on real data
+| Module | Result |
+|---|---|
+| Anomaly scanner (STL + robust z) | Finds Black Friday 2017 and the planted August 2018 cancellations |
+| Order forecast (28 days, 4-fold backtest) | Holt-Winters MAPE 23.6% vs seasonal-naive 29.6% |
+| Late-delivery risk at purchase time | ROC-AUC 0.72; top-decile late rate 2x average |
+| Portuguese review sentiment | F1 0.83 (TF-IDF + logistic regression) |
+| Turbofan remaining useful life (NASA CMAPSS FD001) | RMSE 15.5 cycles vs 41.9 baseline |
+| Surface-defect detection (KolektorSDD) | PatchCore ROC-AUC 0.87 ± 0.02 (CPU, ResNet-18) |
+| Route optimisation (46 real Sao Paulo stops) | 72% shorter than naive routing |
 
 ## Quickstart (Windows, local PostgreSQL)
 ```bash

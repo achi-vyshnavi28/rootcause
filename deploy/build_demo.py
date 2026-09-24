@@ -22,7 +22,7 @@ DEMO_DIR = ROOT / "data" / "demo"
 DIST = ROOT / "dist" / "hf_space"
 TABLES = ["customers", "orders", "order_items", "order_payments", "order_reviews", "products", "sellers", "category_translation"]
 
-SPACE_REQUIREMENTS = """pandas==2.2.3
+SPACE_REQUIREMENTS = """pandas==2.3.3
 SQLAlchemy==2.0.36
 python-dotenv==1.0.1
 PyYAML==6.0.3
