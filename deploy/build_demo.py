@@ -91,8 +91,11 @@ def build_duckdb() -> Path:
 
 
 def assemble() -> Path:
-    if DIST.exists():
-        shutil.rmtree(DIST)
+    DIST.mkdir(parents=True, exist_ok=True)
+    for child in DIST.iterdir():  # clear old files but keep .git (the bundle is its own GitHub repo)
+        if child.name == ".git":
+            continue
+        shutil.rmtree(child) if child.is_dir() else child.unlink()
     ignore = shutil.ignore_patterns("__pycache__", "*.pyc")
     for folder in ("backend", "frontend"):
         shutil.copytree(ROOT / folder, DIST / folder, ignore=ignore)
