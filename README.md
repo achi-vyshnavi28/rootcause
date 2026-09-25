@@ -72,7 +72,9 @@ risk assessment, ALCOA+ for AI answers, CSA validation approach with traceabilit
 
 Product docs for this release: [PRD v1.2](docs/product/PRD_v1.2_gxp_readiness.md) (reviewed with
 [SpecCheck](https://github.com/achi-vyshnavi28/speccheck): 4 gaps found and fixed before build),
-[release notes](docs/product/release_notes_v1.2.md), [competitor teardown](docs/product/competitor_teardown.md).
+[release notes](docs/product/release_notes_v1.2.md), [competitor teardown](docs/product/competitor_teardown.md),
+[wireframes in Figma](https://www.figma.com/design/r25fpOdui1TT7TynBe7snc/Wireframes--BatchGuard--RootCause--SpecCheck?node-id=7-2) (v1.2 audit-trail states + v1.3 proposals, from `design/make_wireframes.py`),
+and the Jira backlog (3 epics, 25 issues; v1.2 delivered in a closed sprint, v1.3 planned).
 
 ## Other results on real data
 | Module | Result |
