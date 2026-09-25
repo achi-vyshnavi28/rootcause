@@ -40,6 +40,8 @@ paho-mqtt==2.1.0
 # Vision
 opencv-python-headless==5.0.0.93
 scikit-image==0.26.0
+# PatchCore also needs torch (CPU build, from PyTorch's index, as in CI):
+#   pip install torch==2.14.0 torchvision==0.29.0 --index-url https://download.pytorch.org/whl/cpu
 
 # API + UI
 fastapi==0.141.1
