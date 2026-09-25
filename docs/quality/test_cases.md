@@ -1,4 +1,4 @@
-# Test-case library (manual / UAT) v1.0
+# Test-case library (manual / UAT) v1.2
 
 Manual cases for UAT and demos. Automated counterparts are listed where they exist. Environment: local PostgreSQL 16 with `olist` + `olist_lab`, Streamlit UI, Gemini free tier.
 
@@ -19,6 +19,11 @@ Manual cases for UAT and demos. Automated counterparts are listed where they exi
 | TC13 | Webhook duplicate | Integrations service | Post the same signed Razorpay event twice | 202 then 200 `{"duplicate": true}`; one event stored | yes (03) |
 | TC14 | Dead-letter replay | Integrations service | Force a handler error until dead-lettered; fix; `replay_events --dead-letter` | Event processed; order state correct | yes (08) |
 | TC15 | Anomaly API | API running | `GET /anomalies?dataset=olist_lab` | Includes 2018-08 canceled_rate spikes and 2017-11-24 order spike | – |
+| TC16 | Audit trail intact (v1.2) | Some runs saved | Open History tab | Green banner "Audit trail intact: N hash-chained entries verified" | Playwright `test_history_tab_verifies_the_audit_trail`; Postman 12 |
+| TC17 | Tampering detected (v1.2) | Run TC04; DB admin access | In SQL, `UPDATE rootcause_app.runs SET report = ... WHERE run_id = '<id>'`; open History tab | Red banner "Audit trail problem: 1 issue(s)"; the table names the run and "changed after they were recorded" | `tests/test_audit_log.py` (7 cases) |
+| TC18 | Model recorded per answer (v1.2) | Run TC04 | `GET /runs/<id>`; `GET /audit/log?limit=2` | `usage.models` lists the model; the audit entry for the run carries the same model | Postman 06, 11 |
+| TC19 | Legacy runs baselined once (v1.2) | Database with runs from before v1.2 | Start the app twice; `GET /audit/log` | One `run_baselined` entry per legacy run, not two; `/audit/verify` intact | `test_runs_saved_before_the_audit_log_are_baselined_once` |
+| TC20 | Model change control (v1.2) | New model id proposed | Set `LLM_MODEL`; run `python -m evals.run_evals`; compare with thresholds in `docs/gxp/04` | Accept only if SQL ≥ 95%, Hit@1 ≥ 85%, refusals 100%, unsupported numbers ≤ 2% | Postman 13 checks the thresholds on the latest report |
 
 ## Bug report template
 ```
@@ -32,4 +37,6 @@ Evidence: audit trail query ids, logs
 ```
 
 ## Regression sweep (before each release)
-`python -m pytest` (all green) → `python -m evals.run_evals --limit 2` (no metric below the last release) → TC01-TC06 manually in the UI.
+`python -m pytest` (all green) → `pytest tests_ui` (Playwright, screenshots in `docs/quality/ui_evidence/`) → Newman run of `postman/` (all assertions pass) → `GET /audit/verify` intact → `python -m evals.run_evals --limit 2` (no metric below the last release) → TC01-TC06 manually in the UI.
+
+Real defects found so far are logged in `bug_reports.md`.

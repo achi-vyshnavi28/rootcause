@@ -1,0 +1,448 @@
+{
+  "info": {
+    "name": "RootCause API",
+    "description": "Regression suite: input validation, a known-answer question, grounding, stored runs, feedback, the hash-chained audit log and the benchmark thresholds used for model change control.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "runId",
+      "value": ""
+    }
+  ],
+  "item": [
+    {
+      "name": "01 Health",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/health",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "health"
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('200 OK', () => { pm.response.to.have.status(200); });",
+              "pm.test('reports the pinned model', () => { pm.expect(pm.response.json().model).to.match(/^gemini\\//); });"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "02 Datasets",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/datasets",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "datasets"
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('both datasets listed', () => { pm.expect(pm.response.json()).to.have.keys('olist', 'olist_lab'); });"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "03 Ask: question too short is rejected",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/ask",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "ask"
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n \"question\": \"hi\",\n \"dataset\": \"olist\"\n}"
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('422 validation error', () => { pm.response.to.have.status(422); });",
+              "pm.test('error names the question field', () => { pm.expect(JSON.stringify(pm.response.json().detail)).to.include('question'); });"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "04 Ask: unknown dataset is rejected before any LLM call",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/ask",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "ask"
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n \"question\": \"How many orders were canceled?\",\n \"dataset\": \"production_db\"\n}"
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('400 Bad Request', () => { pm.response.to.have.status(400); });",
+              "pm.test('message lists valid datasets', () => { pm.expect(pm.response.json().detail).to.include('olist_lab'); });"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "05 Ask: data question with a known answer",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/ask",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "ask"
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n \"question\": \"How many orders were canceled?\",\n \"dataset\": \"olist\"\n}"
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('200 OK', () => { pm.response.to.have.status(200); });",
+              "const r = pm.response.json(); pm.collectionVariables.set('runId', r.run_id);",
+              "pm.test('status ok', () => { pm.expect(r.status).to.eql('ok'); });",
+              "pm.test('answer gives the true count (625)', () => { pm.expect(r.report.answer).to.include('625'); });",
+              "pm.test('answer cites its query', () => { pm.expect(r.report.answer).to.match(/\\[Q\\d+\\]/); });",
+              "pm.test('no unsupported numbers', () => { pm.expect(r.report.unsupported_numbers || []).to.be.empty; });",
+              "pm.test('every query was validated (executed SQL has a LIMIT)', () => { r.queries.filter(q => q.sql_executed).forEach(q => pm.expect(q.sql_executed).to.match(/LIMIT/i)); });"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "06 Stored run matches what was returned",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/runs/{{runId}}",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "runs",
+            "{{runId}}"
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('200 OK', () => { pm.response.to.have.status(200); });",
+              "pm.test('same question and dataset', () => { pm.expect(pm.response.json()).to.include({question: 'How many orders were canceled?', dataset: 'olist'}); });",
+              "pm.test('model recorded for the answer', () => { pm.expect(pm.response.json().usage.models).to.not.be.empty; });"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "07 Query audit trail for the run",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/runs/{{runId}}/audit",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "runs",
+            "{{runId}}",
+            "audit"
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('at least one query', () => { pm.expect(pm.response.json().length).to.be.above(0); });",
+              "pm.test('each query has SQL and a row count or an error', () => { pm.response.json().forEach(q => { pm.expect(q.sql_submitted).to.be.a('string'); pm.expect(q.row_count !== null || q.error !== null).to.be.true; }); });"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "08 Feedback: rating out of range is rejected",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/runs/{{runId}}/feedback",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "runs",
+            "{{runId}}",
+            "feedback"
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n \"rating\": 5\n}"
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('422 validation error', () => { pm.response.to.have.status(422); });"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "09 Feedback: valid rating is saved",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/runs/{{runId}}/feedback",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "runs",
+            "{{runId}}",
+            "feedback"
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n \"rating\": 1,\n \"comment\": \"Postman regression run\"\n}"
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('200 OK and saved', () => { pm.response.to.have.status(200); pm.expect(pm.response.json().saved).to.be.true; });"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "10 Unknown run returns 404",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/runs/00000000-0000-0000-0000-000000000000",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "runs",
+            "00000000-0000-0000-0000-000000000000"
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('404 Not Found', () => { pm.response.to.have.status(404); });"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "11 Audit log is hash-chained",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/audit/log?limit=5",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "audit",
+            "log"
+          ],
+          "query": [
+            {
+              "key": "limit",
+              "value": "5"
+            }
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const log = pm.response.json();",
+              "pm.test(\"newest entry is this run's feedback\", () => { pm.expect(log[0]).to.include({event: 'feedback', run_id: pm.collectionVariables.get('runId')}); });",
+              "pm.test('previous entry is this run being recorded', () => { pm.expect(log[1].event).to.eql('run_recorded'); });",
+              "pm.test('entries are linked by hash', () => { pm.expect(log[0].prev_hash).to.eql(log[1].hash); });",
+              "pm.test('hashes are SHA-256', () => { pm.expect(log[0].hash).to.match(/^[0-9a-f]{64}$/); });"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "12 Audit verify: trail intact",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/audit/verify",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "audit",
+            "verify"
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('200 OK', () => { pm.response.to.have.status(200); });",
+              "pm.test('intact, no problems', () => { pm.expect(pm.response.json()).to.include({intact: true}); pm.expect(pm.response.json().problems).to.be.empty; });"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "13 Latest benchmark report",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/evals/latest",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "evals",
+            "latest"
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const s = pm.response.json().summary;",
+              "pm.test('50 questions', () => { pm.expect(s.questions).to.eql(50); });",
+              "pm.test('no invented numbers', () => { pm.expect(s.answers_with_unsupported_numbers_pct).to.eql(0); });",
+              "pm.test('meets the model change-control thresholds', () => { pm.expect(s.sql_execution_accuracy_pct).to.be.at.least(95); pm.expect(s.root_cause_hit_at_1_pct).to.be.at.least(85); pm.expect(s.correct_refusal_pct).to.eql(100); });"
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}

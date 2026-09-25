@@ -21,9 +21,12 @@ djangorestframework==3.18.1
 celery==5.6.3
 redis==8.1.0
 
-# Analytics + ML (scikit-learn pinned to 1.8: 1.9's compiled files are blocked by Windows Application Control on the dev laptop)
+# Analytics + ML. scikit-learn 1.8, statsmodels 0.14.5, xxhash 3.6.0 and tiktoken 0.9.0 are pinned below their latest releases:
+# the newer compiled files are blocked by Windows Application Control on the dev laptop (decision log #10)
 scipy==1.18.1
-statsmodels==0.15.0
+statsmodels==0.14.5
+xxhash==3.6.0  # via langsmith (LangGraph tracing)
+tiktoken==0.9.0  # via litellm
 scikit-learn==1.8.0
 openpyxl==3.1.5
 mlflow-skinny==3.16.1
@@ -49,3 +52,6 @@ plotly==7.1.0
 pytest==9.1.1
 duckdb==1.5.5
 pytest-django==4.14.0
+# Browser tests (tests_ui/, run on demand; browsers: python -m playwright install chromium)
+playwright==1.63.0
+pytest-playwright==0.9.0

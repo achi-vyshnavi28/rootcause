@@ -49,6 +49,31 @@ Results (Gemini free tier, `gemini-3.6-flash`, 2026-09-24; full report in `evals
 
 How these numbers were reached, including the first run (80% SQL), the scoring fixes and the outage re-runs, is recorded in [docs/decision_log.md](docs/decision_log.md) (entry 13).
 
+## v1.2: answers a regulated team can audit
+Could a pharma quality team use an AI analyst to investigate, say, a rise in deviations? Only if an auditor can check
+every answer later. [docs/gxp/](docs/gxp) assesses RootCause for that use (intended use, GAMP 5 category and AI
+risk assessment, ALCOA+ for AI answers, CSA validation approach with traceability), and v1.2 closes the gaps it found:
+
+- **Tamper-evident answer log** (21 CFR Part 11 §11.10(e)): each saved answer is SHA-256 hash-chained with its SQL
+  and model. `GET /audit/verify` recomputes the chain and re-reads every run, so edits, deletions and insertions made
+  directly in the database are reported. The History tab shows the result. 64 existing answers were baselined at upgrade.
+- **Model recorded per answer**, and a **model change-control gate** (`python -m evals.check_thresholds`): a new model
+  is accepted only if the benchmark still meets the acceptance criteria. (The provider really did retire a model
+  mid-project: decision log #14.)
+- **Open gaps are stated, not hidden:** no per-user identity yet (G1), database-level append-only permissions (G2).
+
+| Quality evidence | Result |
+|---|---|
+| `pytest` | 96 passed |
+| Playwright browser tests (`tests_ui/`) | 4/4, screenshots in [docs/quality/ui_evidence](docs/quality/ui_evidence) |
+| Postman/Newman API suite ([postman/](postman)) | 13/13 requests, 30/30 assertions |
+| Excel test workbook ([docs/quality/test_library_v1.2.xlsx](docs/quality/test_library_v1.2.xlsx)) | 20 test cases with results and evidence, traceability, risk register, benchmark with live formulas |
+| Real bugs found and closed | 3 ([docs/quality/bug_reports.md](docs/quality/bug_reports.md)) |
+
+Product docs for this release: [PRD v1.2](docs/product/PRD_v1.2_gxp_readiness.md) (reviewed with
+[SpecCheck](https://github.com/achi-vyshnavi28/speccheck): 4 gaps found and fixed before build),
+[release notes](docs/product/release_notes_v1.2.md), [competitor teardown](docs/product/competitor_teardown.md).
+
 ## Other results on real data
 | Module | Result |
 |---|---|

@@ -46,8 +46,8 @@ Each entry: the decision, the alternatives rejected, and why.
 - **Negative result:** a PatchCore-style memory bank with handcrafted HOG features stayed at 0.54. Handcrafted descriptors don't separate cracks from stochastic grain; the paper's pretrained CNN features are what make it work.
 - **Next:** `notebooks/ksdd_patchcore_yolo_colab.ipynb` runs anomalib PatchCore (WideResNet-50) and YOLO segmentation on a free GPU with the same split.
 
-## 10. scikit-learn pinned to 1.8
-- scikit-learn 1.9's compiled `_loss` module was blocked by Windows Application Control on the development laptop. 1.8 loads. The security policy was left untouched.
+## 10. scikit-learn, statsmodels and xxhash pinned below latest
+- scikit-learn 1.9's compiled `_loss` module was blocked by Windows Application Control on the development laptop; 1.8 loads. The same happened later to statsmodels 0.15 (`_kalman_smoother`, pinned 0.14.5), xxhash 4.0 (imported by LangGraph's tracing library, pinned 3.6.0) and tiktoken 0.14 (imported by LiteLLM, pinned 0.9.0). The security policy was left untouched; CI on Linux runs the same pins.
 
 ## 11. Anomaly threshold |robust z| >= 6
 - At 4, the STL detector flagged ordinary noise on a synthetic series; every real event found in Olist (Black Friday, New Year, the planted cancellations) scored above 11.
@@ -64,3 +64,13 @@ Each entry: the decision, the alternatives rejected, and why.
   - sql14, sql15, rc07: never reached the agent's reasoning (network `getaddrinfo` failure overnight; Gemini 503 "high demand"). Re-run with `--ids`.
 - **Rule:** scorer changes apply to every question and are re-applied to the saved answers with `evals/rescore.py` (no LLM calls, so no chance to "retry until right"). Nothing was changed in the agent between the run and the rescore.
 - **Latency:** the reported average was dominated by one 11.7-hour hang during the network outage; the report now also gives the median.
+
+## 14. The LLM is a supplier that can change under you
+- **What happened:** during development the Gemini model the agent was first configured with was retired by the provider. Nothing in our code changed, but every call started failing. The fix was to move to `gemini-3.6-flash` with a fallback model list.
+- **Lesson:** a hosted model is an external dependency whose behaviour can change without a release on our side. Since then the model id is pinned in config, recorded in every benchmark report (`evals/reports/latest.json`) and, from v1.2, on every stored answer. `docs/gxp/04_validation_approach_and_traceability.md` turns this into a change-control rule: a new model is accepted only after the benchmark passes.
+
+## 15. Tamper-evident audit log instead of trusting the database (v1.2)
+- **Why:** the GxP assessment (`docs/gxp/`) showed that stored answers are records an investigator may rely on, so a later edit must be detectable (21 CFR Part 11 §11.10(e), ALCOA+ *Original*).
+- **How:** each saved run appends an `audit_log` entry with a SHA-256 digest of the run as stored (question, answer, executed SQL, row counts, model) and the previous entry's hash. `GET /audit/verify` recomputes the chain **and** re-reads every run, so edits made directly in the database, deleted runs, removed log entries and runs inserted outside the app are all reported (`tests/test_audit_log.py`).
+- **Legacy runs:** the 64 runs saved before v1.2 were baselined once at go-live (event `run_baselined`) and are protected from then on.
+- **Known limits:** the sequence number is assigned by the application and the database user can still write to `audit_log`. A hash chain makes tampering *visible*, not impossible; production would add database-level append-only permissions (gap G2).

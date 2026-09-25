@@ -1,0 +1,39 @@
+Summary,Issue Type,Description,Priority,Labels
+RC-121 Tamper-evident answer log,Story,"As a QA auditor, I want every stored answer protected by a hash chain, so I can prove an investigation's evidence was not changed after the fact.
+
+Acceptance criteria:
+* When a run is saved, the system appends an audit entry with a SHA-256 digest of the question, answer, executed SQL, row counts and model, linked to the previous entry's hash.
+* `GET /audit/verify` recomputes the chain and re-reads every run; it reports each run that was edited, deleted or inserted outside the app.
+* The History tab shows ""Audit trail intact"" in green, or the list of problems in red.
+* Audit entries are never updated or deleted by the application.",Medium,RootCause-1.2
+RC-122 Model recorded per answer,Story,"As a QA auditor, I want each answer to record the model that produced it, so a change in behaviour can be traced to a model change.
+
+Acceptance criteria:
+* Each stored run lists the model id(s) used.
+* The audit entry for the run contains the same model id(s).
+* A run that failed before any model call is stored with status `error` and an empty model list, so it is not mistaken for a model's answer.",Medium,RootCause-1.2
+RC-123 Baseline answers saved before v1.2,Story,"As the system owner, I want runs saved before the audit log existed to be baselined once, so history is protected from go-live without pretending it was always protected.
+
+Acceptance criteria:
+* On start-up, the system gives each run without an audit entry exactly one `run_baselined` entry.
+* Starting the app again adds no further entries.
+* `GET /audit/verify` checks baselined runs the same way as new runs.
+* A run changed after baselining is reported by `/audit/verify` like any other tampered run; baselining never runs again for a run that already has an entry.",Medium,RootCause-1.2
+RC-124 Model change-control gate,Story,"As the system owner, I want a model change to be accepted only when the benchmark passes, so quality cannot drop silently when the provider changes models.
+
+Acceptance criteria:
+* `python -m evals.check_thresholds` exits 0 only if SQL accuracy ≥ 95%, root-cause Hit@1 ≥ 85%, correct refusals = 100% and unsupported numbers ≤ 2%.
+* A failing report exits 1 and names each failed criterion.",Medium,RootCause-1.2
+"RC-125 User identity on every question (planned, gap G1)",Story,"As a QA auditor, I want each question linked to the person who asked it, so answers meet ALCOA+ ""Attributable"".
+
+Acceptance criteria:
+* The app requires sign-in through the company identity provider before a question can be asked.
+* Each run and its audit entry store the user id.
+* A request without a signed-in user is refused with 401 and no run is stored.",Medium,RootCause-1.2
+"RC-126 Periodic audit-trail review (planned, gap G3)",Story,"As a QA manager, I want a monthly audit-trail review report, so the review required by our procedures has evidence.
+
+Acceptance criteria:
+* The report lists the verification result, the number of entries checked and any problems found in the period.
+* The report is generated on the 1st of each month at 06:00 UTC and saved as a PDF.
+* If verification finds a problem, the system owner receives an email within 15 minutes.
+* If the report cannot be generated, the system owner receives an email with the error, and the missed month is generated on the next successful run.",Medium,RootCause-1.2

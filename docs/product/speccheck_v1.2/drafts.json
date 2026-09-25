@@ -1,0 +1,425 @@
+{
+ "RC-121": {
+  "test_cases": [
+   {
+    "title": "Verify Hash Chain Creation on Run Save",
+    "type": "positive",
+    "covers": [
+     1
+    ],
+    "preconditions": "The system is running and database is initialized with zero audit entries.",
+    "steps": [
+     "Execute a query run capturing question, answer, executed SQL, row counts, and model.",
+     "Save the run.",
+     "Inspect the backend audit table for the newly appended entry."
+    ],
+    "expected": "An audit entry is successfully appended containing a valid SHA-256 digest of the question, answer, executed SQL, row counts, and model, and its previous_hash field correctly points to the preceding entry's hash.",
+    "priority": "high"
+   },
+   {
+    "title": "Verify Detection of Tampered Database Records via GET /audit/verify",
+    "type": "negative",
+    "covers": [
+     2
+    ],
+    "preconditions": "At least three valid runs have been saved, forming a complete hash chain.",
+    "steps": [
+     "Directly modify the answer text of the second run in the database bypassing the application layer.",
+     "Send a GET request to /audit/verify."
+    ],
+    "expected": "The endpoint returns a response identifying the second run as modified/tampered due to a broken hash chain.",
+    "priority": "high"
+   },
+   {
+    "title": "History Tab Displays Audit Trail Integrity Status",
+    "type": "positive",
+    "covers": [
+     3
+    ],
+    "preconditions": "User is logged in as a QA auditor and navigates to the History tab.",
+    "steps": [
+     "Ensure all saved runs have intact hash chains.",
+     "View the History tab in the UI.",
+     "Simulate a modified database record and refresh the History tab."
+    ],
+    "expected": "When the chain is intact, the UI displays 'Audit trail intact' in green. When a problem exists, the UI displays the list of problems in red.",
+    "priority": "medium"
+   },
+   {
+    "title": "Prevention of Audit Entry Modification and Deletion",
+    "type": "audit",
+    "covers": [
+     4
+    ],
+    "preconditions": "At least one audit entry exists in the audit table.",
+    "steps": [
+     "Attempt to execute an SQL UPDATE statement directly against the audit table to change a logged answer.",
+     "Attempt to execute an SQL DELETE statement against the audit table to remove an entry."
+    ],
+    "expected": "Database constraints, triggers, or application-level permissions prevent the update and delete operations, throwing an error and leaving the audit records unchanged.",
+    "priority": "high"
+   }
+  ],
+  "ambiguities": []
+ },
+ "RC-122": {
+  "test_cases": [
+   {
+    "title": "Successful run records model ID in storage",
+    "type": "positive",
+    "covers": [
+     1
+    ],
+    "preconditions": "User has QA Auditor or standard execution role. LLM service is active.",
+    "steps": [
+     "Trigger a standard prompt execution.",
+     "Wait for completion.",
+     "Inspect the stored run record in the database."
+    ],
+    "expected": "The stored run record contains the exact model identifier(s) used to generate the answer.",
+    "priority": "high"
+   },
+   {
+    "title": "Audit entry contains corresponding model ID",
+    "type": "audit",
+    "covers": [
+     2
+    ],
+    "preconditions": "A successful run with a specific model ID has been completed under 21 CFR Part 11 compliant auditing.",
+    "steps": [
+     "Navigate to the system audit trail.",
+     "Locate the audit log entry corresponding to the completed run ID."
+    ],
+    "expected": "The audit entry explicitly contains the same model id(s) recorded in the main run record, ensuring data integrity and traceability.",
+    "priority": "high"
+   },
+   {
+    "title": "Run failing prior to model call stores error status and empty model list",
+    "type": "boundary",
+    "covers": [
+     3
+    ],
+    "preconditions": "System is configured to intercept and fail requests before dispatching to any LLM (e.g., authentication or prompt validation failure).",
+    "steps": [
+     "Submit a request that triggers a pre-model validation error.",
+     "Inspect the resulting stored run record."
+    ],
+    "expected": "The run is stored with status 'error' and the model list field is strictly empty ([]), preventing misattribution of the failure to a model.",
+    "priority": "high"
+   },
+   {
+    "title": "Unauthorized role attempts to modify recorded model IDs in audit trail",
+    "type": "permission",
+    "covers": [
+     2
+    ],
+    "preconditions": "User is authenticated with a restricted role (e.g., standard operator without QA or administrator privileges).",
+    "steps": [
+     "Attempt to execute an API call or UI action to alter the model ID field within an existing audit entry.",
+     "Check system response."
+    ],
+    "expected": "The system denies the request with a 403 Forbidden error, and the original audit entry remains unchanged in compliance with 21 CFR Part 11 immutability requirements.",
+    "priority": "high"
+   }
+  ],
+  "ambiguities": [
+   "Acceptance criteria do not specify the exact schema format or naming convention for the 'model id' field (e.g., whether it should be a string, an array of strings, or an object containing provider and version).",
+   "Acceptance criteria do not define the specific retention period or formatting requirements for the audit entry under 21 CFR Part 11 electronic signature mandates."
+  ]
+ },
+ "RC-123": {
+  "test_cases": [
+   {
+    "title": "Initial startup baselining for legacy runs",
+    "type": "positive",
+    "covers": [
+     1
+    ],
+    "preconditions": "System contains legacy runs created prior to v1.2 without any corresponding audit log entries. The application has never been started since deployment.",
+    "steps": [
+     "Start the application for the first time post-deployment.",
+     "Query the audit log database for all legacy runs."
+    ],
+    "expected": "Each legacy run without an audit entry is assigned exactly one audit entry with the event type `run_baselined`.",
+    "priority": "high"
+   },
+   {
+    "title": "Idempotency of startup baselining",
+    "type": "boundary",
+    "covers": [
+     2
+    ],
+    "preconditions": "The application has already performed its initial startup baselining for legacy runs.",
+    "steps": [
+     "Shut down the application.",
+     "Start the application again.",
+     "Count the total number of audit entries associated with the legacy runs."
+    ],
+    "expected": "No additional `run_baselined` or duplicate audit entries are added; the count of audit entries per run remains unchanged from the first startup.",
+    "priority": "high"
+   },
+   {
+    "title": "Audit verification of baselined runs",
+    "type": "positive",
+    "covers": [
+     3
+    ],
+    "preconditions": "Legacy runs have been successfully baselined with a `run_baselined` audit entry. New runs have been created with standard audit entries.",
+    "steps": [
+     "Authenticate as an authorized system auditor.",
+     "Send a GET request to `/audit/verify`."
+    ],
+    "expected": "The endpoint successfully verifies the integrity chain of both baselined legacy runs and new runs using the same verification logic, returning a status of 200 OK with verification success flags for all runs.",
+    "priority": "high"
+   },
+   {
+    "title": "Detection of tampering on baselined runs and prevention of re-baselining",
+    "type": "negative",
+    "covers": [
+     4
+    ],
+    "preconditions": "A legacy run has been baselined with a `run_baselined` entry.",
+    "steps": [
+     "Directly modify the underlying data of the baselined run in the database to simulate tampering.",
+     "Send a GET request to `/audit/verify`.",
+     "Restart the application to trigger any potential startup routines.",
+     "Check the audit log for the modified run."
+    ],
+    "expected": "The `/audit/verify` endpoint reports the run as tampered, exactly like any other tampered run, and no new `run_baselined` entry is generated for the modified run.",
+    "priority": "high"
+   }
+  ],
+  "ambiguities": [
+   "Acceptance criteria do not specify required user roles or permissions for accessing GET /audit/verify, nor do they specify required e-signature parameters for the baselining event under 21 CFR Part 11."
+  ]
+ },
+ "RC-124": {
+  "test_cases": [
+   {
+    "title": "Model Change Gate Passes on Meeting All Thresholds",
+    "type": "positive",
+    "covers": [
+     1
+    ],
+    "preconditions": "New model evaluation report shows SQL accuracy = 95.0%, root-cause Hit@1 = 85.0%, correct refusals = 100.0%, and unsupported numbers = 2.0%.",
+    "steps": [
+     "Open the validated deployment pipeline terminal.",
+     "Execute the command: python -m evals.check_thresholds",
+     "Capture the exit code and console output."
+    ],
+    "expected": "The script exits with code 0 and logs success indicating all quality gates passed.",
+    "priority": "high"
+   },
+   {
+    "title": "Model Change Gate Fails on SQL Accuracy Below Threshold",
+    "type": "negative",
+    "covers": [
+     1,
+     2
+    ],
+    "preconditions": "New model evaluation report shows SQL accuracy = 94.9% (below 95%), while other metrics meet criteria.",
+    "steps": [
+     "Open the validated deployment pipeline terminal.",
+     "Execute the command: python -m evals.check_thresholds",
+     "Capture the exit code and console output."
+    ],
+    "expected": "The script exits with code 1 and explicitly names SQL accuracy as the failed criterion.",
+    "priority": "high"
+   },
+   {
+    "title": "Model Change Gate Fails on Unsupported Numbers Exceeding Limit",
+    "type": "negative",
+    "covers": [
+     1,
+     2
+    ],
+    "preconditions": "New model evaluation report shows unsupported numbers = 2.1% (above max 2%), while other metrics meet criteria.",
+    "steps": [
+     "Open the validated deployment pipeline terminal.",
+     "Execute the command: python -m evals.check_thresholds",
+     "Capture the exit code and console output."
+    ],
+    "expected": "The script exits with code 1 and explicitly names unsupported numbers as the failed criterion.",
+    "priority": "high"
+   },
+   {
+    "title": "Model Change Gate Boundary Exact Threshold Values",
+    "type": "boundary",
+    "covers": [
+     1
+    ],
+    "preconditions": "New model evaluation report exactly meets all boundary limits: SQL accuracy = 95.0%, root-cause Hit@1 = 85.0%, correct refusals = 100.0%, unsupported numbers = 2.0%.",
+    "steps": [
+     "Open the validated deployment pipeline terminal.",
+     "Execute the command: python -m evals.check_thresholds",
+     "Capture the exit code."
+    ],
+    "expected": "The script exits with code 0, confirming exact boundary limits are accepted.",
+    "priority": "medium"
+   },
+   {
+    "title": "Audit Trail Recording of Model Gate Failure",
+    "type": "audit",
+    "covers": [
+     2
+    ],
+    "preconditions": "A model evaluation run fails one or more criteria causing `python -m evals.check_thresholds` to exit 1.",
+    "steps": [
+     "Execute `python -m evals.check_thresholds` with a failing evaluation report.",
+     "Inspect the 21 CFR Part 11 compliant audit trail log destination."
+    ],
+    "expected": "An immutable audit log entry is generated recording the exact timestamp, system user/service account, the failed criteria names, and the exit code 1.",
+    "priority": "high"
+   }
+  ],
+  "ambiguities": [
+   "The acceptance criteria do not specify the exact file path or input mechanism from which `python -m evals.check_thresholds` reads the evaluation metrics report.",
+   "21 CFR Part 11 electronic signature requirements for overriding a failed model gate are not specified in the user story."
+  ]
+ },
+ "RC-125": {
+  "test_cases": [
+   {
+    "title": "Ask Question with Valid Authenticated User (Happy Path)",
+    "type": "positive",
+    "covers": [
+     1,
+     2
+    ],
+    "preconditions": "User is authenticated via the company identity provider with a valid session token.",
+    "steps": [
+     "Navigate to the question submission interface.",
+     "Enter valid question text into the input field.",
+     "Submit the question."
+    ],
+    "expected": "The question is accepted, successfully stored in the database linked to the user ID, and a corresponding immutable audit trail entry is generated containing the exact user ID and timestamp.",
+    "priority": "high"
+   },
+   {
+    "title": "Refuse Question Submission Without Authentication (Negative Case)",
+    "type": "negative",
+    "covers": [
+     1,
+     3
+    ],
+    "preconditions": "User is completely unauthenticated (no active session or token).",
+    "steps": [
+     "Send a direct API request to submit a question without providing authentication headers/tokens.",
+     "Observe the HTTP response status code and system storage."
+    ],
+    "expected": "The server returns an HTTP 401 Unauthorized status code, no run or question record is created in the database, and no audit trail entry is stored.",
+    "priority": "high"
+   },
+   {
+    "title": "Refuse Question Submission with Expired Session Token (Boundary)",
+    "type": "boundary",
+    "covers": [
+     1,
+     3
+    ],
+    "preconditions": "User session token has expired past the configured inactivity or absolute timeout window.",
+    "steps": [
+     "Attempt to submit a question using the expired session token.",
+     "Capture the server response."
+    ],
+    "expected": "The application rejects the request with an HTTP 401 Unauthorized status, preventing the creation of any question run or data persistence.",
+    "priority": "medium"
+   },
+   {
+    "title": "Verify Audit Trail Attributability for Submitted Questions",
+    "type": "audit",
+    "covers": [
+     2
+    ],
+    "preconditions": "Multiple questions have been successfully asked by distinct authenticated users.",
+    "steps": [
+     "Access the secure GxP audit log interface as a QA auditor.",
+     "Inspect the audit logs corresponding to the recent question submissions."
+    ],
+    "expected": "Every audit log entry explicitly displays the unique user ID, exact timestamp, and the action performed, satisfying the ALCOA+ 'Attributable' requirement.",
+    "priority": "high"
+   }
+  ],
+  "ambiguities": []
+ },
+ "RC-126": {
+  "test_cases": [
+   {
+    "title": "Monthly Audit-Trail Report Generation and Content Verification",
+    "type": "positive",
+    "covers": [
+     1,
+     2
+    ],
+    "preconditions": "System clock is set to the 1st of the month at 05:59 UTC. Audit logs exist for the preceding month.",
+    "steps": [
+     "Allow system time to reach 01st of the month at 06:00 UTC.",
+     "Navigate to the report repository as QA Manager.",
+     "Open the newly generated PDF report for the preceding month."
+    ],
+    "expected": "A PDF report is successfully saved in the repository. The report explicitly lists the verification result, the exact number of entries checked, and details of any problems found.",
+    "priority": "high"
+   },
+   {
+    "title": "Immediate Notification on Audit Problem Detection",
+    "type": "positive",
+    "covers": [
+     3
+    ],
+    "preconditions": "An intentional anomaly or problem is injected into the audit trail during the review period. System clock is near the scheduled run time.",
+    "steps": [
+     "Trigger the monthly audit-trail review report generation.",
+     "Monitor the system owner's email inbox for incoming messages."
+    ],
+    "expected": "An email notification detailing the problem found is received by the system owner exactly within 15 minutes of report generation/problem identification.",
+    "priority": "high"
+   },
+   {
+    "title": "Report Generation Failure Handling and Backlog Recovery",
+    "type": "negative",
+    "covers": [
+     4
+    ],
+    "preconditions": "Report generation mechanism is intentionally blocked or encounters a fatal error on the 1st of the current month at 06:00 UTC.",
+    "steps": [
+     "Allow the scheduled run time to pass while the error condition persists.",
+     "Check the system owner's email inbox.",
+     "Resolve the error condition and manually or automatically trigger the next scheduled run on the 1st of the following month."
+    ],
+    "expected": "System owner receives an email containing the specific generation error within the notification window. On the next successful run, both the missed month and the current month reports are successfully generated.",
+    "priority": "high"
+   },
+   {
+    "title": "Unauthorized Access to Generate Audit-Trail Review Report",
+    "type": "permission",
+    "covers": [],
+    "preconditions": "User is logged in with a Standard Operator role (lacking QA Manager privileges).",
+    "steps": [
+     "Navigate to the periodic audit-trail review report generation module.",
+     "Attempt to manually initiate or access the monthly audit-trail review report."
+    ],
+    "expected": "The system denies access, displays an unauthorized action error message, and generates a security audit-trail entry recording the unauthorized attempt.",
+    "priority": "medium"
+   },
+   {
+    "title": "Audit Trail Verification of Report Generation and Review Actions",
+    "type": "audit",
+    "covers": [
+     1,
+     2
+    ],
+    "preconditions": "Automated monthly audit-trail review report has just executed successfully.",
+    "steps": [
+     "Access the secure system audit trail as an administrator or QA auditor.",
+     "Search for events associated with the audit-trail review report generation and verification job for the specific date."
+    ],
+    "expected": "An immutable audit log entry exists detailing the timestamp of report generation, the user/system account that executed it, the parameters used, and the cryptographic hash or reference to the saved PDF file.",
+    "priority": "high"
+   }
+  ],
+  "ambiguities": [
+   "Acceptance criteria 3 does not specify the exact communication channel or format for the system owner email (e.g., SMTP server settings, explicit subject line naming convention), assuming standard system email integration.",
+   "Acceptance criteria 4 does not define the exact error message text or categorization required when report generation fails."
+  ]
+ }
+}
