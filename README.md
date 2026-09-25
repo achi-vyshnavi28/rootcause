@@ -65,7 +65,7 @@ risk assessment, ALCOA+ for AI answers, CSA validation approach with traceabilit
 | Quality evidence | Result |
 |---|---|
 | `pytest` | 96 passed |
-| Playwright browser tests (`tests_ui/`) | 4/4, screenshots in [docs/quality/ui_evidence](docs/quality/ui_evidence) |
+| Playwright browser tests (`tests_ui/`) | 5/5, screenshots in [docs/quality/ui_evidence](docs/quality/ui_evidence) |
 | Postman/Newman API suite ([postman/](postman)) | 13/13 requests, 30/30 assertions |
 | Excel test workbook ([docs/quality/test_library_v1.2.xlsx](docs/quality/test_library_v1.2.xlsx)) | 20 test cases with results and evidence, traceability, risk register, benchmark with live formulas |
 | Real bugs found and closed | 3 ([docs/quality/bug_reports.md](docs/quality/bug_reports.md)) |

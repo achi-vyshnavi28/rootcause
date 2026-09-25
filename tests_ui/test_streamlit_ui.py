@@ -46,6 +46,17 @@ def open_app(page: Page, url: str) -> None:
     expect(page.get_by_role("heading", name="RootCause")).to_be_visible(timeout=60_000)
 
 
+def test_first_visit_explains_the_app_and_shows_a_real_answer(page: Page, app_url):
+    """A visitor sees what the app does and a saved real answer before asking anything (no 40-second wait)."""
+    open_app(page, app_url)
+    expect(page.get_by_text("How to read this page in 30 seconds")).to_be_visible()
+    expect(page.get_by_text("Example answer, saved from a real run")).to_be_visible()
+    expect(page.get_by_text("Numbers not found in the evidence")).to_have_count(0)
+    expect(page.get_by_role("button", name="Why did the number of orders drop in April 2018 compared to March 2018?")).to_be_visible()
+    page.wait_for_timeout(1500)  # let every element finish rendering before the evidence screenshot (see BUG-003)
+    shot(page, "00_first_visit")
+
+
 def test_empty_question_shows_a_clear_warning(page: Page, app_url):
     open_app(page, app_url)
     page.get_by_role("button", name="Investigate").click()
@@ -56,11 +67,13 @@ def test_empty_question_shows_a_clear_warning(page: Page, app_url):
 def test_known_answer_question_is_answered_with_evidence(page: Page, app_url):
     """TC04 in the test library: the true count is 625, and the answer must cite the query behind it."""
     open_app(page, app_url)
-    page.get_by_test_id("stSidebar").get_by_role("combobox").click()
+    page.get_by_role("combobox").first.click()
     page.get_by_role("option", name="Olist e-commerce (original)").click()
     page.get_by_label("Your question").fill("How many orders were canceled?")
     page.get_by_role("button", name="Investigate").click()
     expect(page.get_by_text("625").first).to_be_visible(timeout=300_000)
+    expect(page.get_by_text("Example answer, saved from a real run")).to_have_count(0, timeout=60_000)  # replaced
+    expect(page.get_by_text("Audit trail:")).to_have_count(1, timeout=60_000)  # the example's trail is gone too
     expect(page.get_by_text("Numbers not found in the evidence")).to_have_count(0)
     trail = page.get_by_text("Audit trail:")
     expect(trail).to_be_visible()
@@ -87,5 +100,5 @@ def test_history_tab_verifies_the_audit_trail(page: Page, app_url):
 def test_evals_tab_shows_the_benchmark(page: Page, app_url):
     open_app(page, app_url)
     page.get_by_role("tab", name="Evals").click()
-    expect(page.get_by_text("gemini/gemini-3.6-flash").first).to_be_visible(timeout=30_000)
+    expect(page.get_by_text("Run at")).to_be_visible(timeout=30_000)
     shot(page, "04_evals_benchmark")
