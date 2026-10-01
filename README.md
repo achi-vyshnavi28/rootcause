@@ -140,3 +140,6 @@ docs/                decision log, case study
 - Root-cause analysis is order-centric (every metric is measured per order); other data models need a new semantic layer.
 - Segments that overlap (an order with two sellers) are counted in each, so shares are approximate for those dimensions.
 - One level of drill-down.
+
+## License
+The code is open source under the [MIT License](LICENSE). The Olist dataset (Kaggle, CC BY-NC-SA 4.0) is downloaded separately and is not covered by this license.
