@@ -3,6 +3,7 @@ pandas==2.2.3
 SQLAlchemy==2.0.36
 psycopg[binary]==3.2.3
 python-dotenv==1.0.1
+PyMySQL==1.2.3  # MySQL dialect (tests/test_mysql_live.py)
 PyYAML==6.0.3
 
 # Agent + LLM
@@ -42,6 +43,10 @@ opencv-python-headless==5.0.0.93
 scikit-image==0.26.0
 # PatchCore also needs torch (CPU build, from PyTorch's index, as in CI):
 #   pip install torch==2.14.0 torchvision==0.29.0 --index-url https://download.pytorch.org/whl/cpu
+
+# AWS: DynamoDB run index + S3 run archive (backend/cloud/aws_runs.py); moto emulates both in tests
+boto3==1.43.103
+moto==5.2.3
 
 # API + UI
 fastapi==0.141.1

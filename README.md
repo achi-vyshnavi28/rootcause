@@ -76,6 +76,20 @@ Product docs for this release: [PRD v1.2](docs/product/PRD_v1.2_gxp_readiness.md
 [wireframes in Figma](https://www.figma.com/design/r25fpOdui1TT7TynBe7snc/Wireframes--BatchGuard--RootCause--SpecCheck?node-id=7-2) (v1.2 audit-trail states + v1.3 proposals, from `design/make_wireframes.py`),
 and the Jira backlog (3 epics, 25 issues; v1.2 delivered in a closed sprint, v1.3 planned).
 
+## v1.3: React console, MySQL, DynamoDB + S3
+- **React + TypeScript console** (`web/`, Vite, Vitest): ask a question, see the ranked segments with their share of
+  the change, the next checks, every validated SQL query, and whether the hash-chained audit log is intact.
+  `npm --prefix web run dev` on port 5177 proxies `/api` to the FastAPI service.
+- **PostgreSQL and MySQL**: the SQL guardrail takes `dialect="postgres" | "mysql"`. On MySQL it also blocks `SLEEP`,
+  `BENCHMARK`, `LOAD_FILE`, `GET_LOCK` and `INTO OUTFILE`, and its output runs on a real MySQL 8.4 server in CI
+  (`tests/test_mysql_live.py`: period comparison by segment and a window function).
+- **DynamoDB run index** (`backend/cloud/aws_runs.py`): partition key = dataset + question hash, so a repeat question is
+  answered from the index (`cached: true`) instead of new LLM calls; items expire through a TTL attribute.
+- **S3 run archive**: `POST /runs/{id}/archive` writes the full run (report, SQL, usage) as encrypted JSON and returns a
+  15-minute presigned link for an auditor. Both are off unless `ROOTCAUSE_DYNAMO_TABLE` / `ROOTCAUSE_S3_BUCKET` are set;
+  tests use moto, so no AWS account is needed.
+- **CI**: Python tests with a MySQL service container, plus a web job (Vitest + production build).
+
 ## Other results on real data
 | Module | Result |
 |---|---|
@@ -101,6 +115,7 @@ python -m data.setup_readonly_role   # read-only user for the agent (proves DELE
 python -m data.inject_anomalies      # olist_lab with 5 planted root causes
 streamlit run frontend/app.py        # UI
 uvicorn backend.api.main:app         # API (docs at /docs)
+npm --prefix web install; npm --prefix web run dev   # React console on :5177
 python -m evals.run_evals            # benchmark
 python -m pytest                     # tests (no DB or API key needed)
 ```
@@ -113,6 +128,8 @@ backend/tools/       root-cause statistics
 backend/db/          read-only executor, audit-trail store
 backend/api/         FastAPI
 frontend/            Streamlit UI
+web/                 React + TypeScript console
+backend/cloud/       DynamoDB run index, S3 run archive
 data/                loaders, read-only role, planted anomalies
 evals/               benchmark questions, scoring, runner
 tests/               unit + end-to-end tests (DuckDB + scripted LLM)

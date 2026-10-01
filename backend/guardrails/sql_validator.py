@@ -7,6 +7,7 @@ Rules:
 - only tables from allowed schemas; unqualified tables get the default schema
 - a row LIMIT is always applied (and capped)
 
+Works for PostgreSQL (the default) and MySQL (dialect="mysql"), each with its own dangerous functions.
 This is the first safety layer. The read-only database user is the second.
 """
 
@@ -33,7 +34,11 @@ _FORBIDDEN_FUNCTIONS = {
     "lo_import", "lo_export", "dblink", "dblink_exec",
     "pg_terminate_backend", "pg_cancel_backend", "pg_reload_conf",
     "set_config", "current_setting", "query_to_xml",
+    # MySQL: delays, file access, locks and UDF shells
+    "sleep", "benchmark", "load_file", "get_lock", "release_lock", "release_all_locks", "is_free_lock",
+    "sys_exec", "sys_eval",
 }
+DIALECTS = {"postgres", "mysql"}
 
 
 class SQLValidationError(ValueError):
@@ -49,10 +54,13 @@ def validate_sql(
     allowed_schemas: frozenset[str] = frozenset({DEFAULT_SCHEMA}),
     default_schema: str = DEFAULT_SCHEMA,
     max_rows: int = MAX_ROWS,
+    dialect: str = "postgres",
 ) -> str:
-    """Return a safe, normalized version of `sql`, or raise SQLValidationError."""
+    """Return a safe, normalized version of `sql` for `dialect` ("postgres" or "mysql"), or raise SQLValidationError."""
+    if dialect not in DIALECTS:
+        raise SQLValidationError(f"Unsupported SQL dialect: {dialect}.")
     try:
-        statements = [s for s in sqlglot.parse(sql, read="postgres") if s is not None]
+        statements = [s for s in sqlglot.parse(sql, read=dialect) if s is not None]
     except ParseError as e:
         raise SQLValidationError(f"SQL could not be parsed: {e}") from e
 
@@ -91,4 +99,4 @@ def validate_sql(
     if not within_cap:
         tree = tree.limit(max_rows)
 
-    return tree.sql(dialect="postgres")
+    return tree.sql(dialect=dialect)
